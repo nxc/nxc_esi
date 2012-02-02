@@ -1,0 +1,5 @@
+NXC Edge Side Include
+=====================
+
+This extension provides a new template function {es-include}, meant for use on
+sites behind an edge proxy supporting ESI (e.g. Varnish).
