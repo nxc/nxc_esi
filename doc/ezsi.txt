@@ -1,0 +1,49 @@
+Why not use the eZ SI extension?
+================================
+
+eZ Systems already has an extension that outputs ESI include tags, which may
+arguably be easier to use, as it provides an {si-block} template function that
+works similarly to the {cache-block} function, making the edge proxy request
+and cache its content separately. That is the eZ SI extension.
+
+So, why write this new extension, instead of using that one?
+
+Because ezsi has some limitations and (IMO) oddness that this extension avoids.
+
+First off, the way ezsi works means that the page containing the si-blocks
+basically needs a lower TTL than the si-blocks on it - as the whole page has to
+be regenerated to regenerate the content of the blocks it contains, since they
+might depend on variables etc. defined in the code outside of the block itself.
+
+Second, it forces the cache to be per-page, even for elements such as menus or
+headers/footers that are actually identical for many pages. (This is because,
+"at a lower level", its cache keys include the urlalias and view parameters.)
+
+Third, it seems to do most of the caching on the webserver, instead of letting
+the edge proxy handle it - as it saves the generated code in files, kind of
+like the static cache, and then just link to those in the ESI includes.
+This is why it needs some new RewriteRules in the Apache virtualhost.
+
+
+This extension, on the other hand, is rather simpler than ezsi, yet is also
+more powerful in what it allows you to do.
+
+Simpler, because it doesn't require new RewriteRules, saving things to disk,
+cronjobs, or new database tables.
+
+More powerful, because it allows cross-page caching, and pages with elements
+that have shorter TTLs than the page they're on (without having to regenerate
+the entire page when the element has expired).
+
+It also uses a somewhat different strategy, in that it doesn't try to mimic
+cache blocks, but instead implements includes. This forces you to split out the
+code you want to be included into a separate template - which some may not like
+much, but I believe it better matches the underlying concept (edge side
+includes) and what I believe to be good practice, namely keeping separate parts
+of the site in separate templates, so they are better contained.
+
+This enables us to keep the underlying cache key as simple as possible, namely
+just the template name plus the explicitly given keys - which is what allows us
+to reuse a cached part on several pages, while it still allows us to give
+parameters to the included templates (for e.g. showing another part of a menu
+on a different section of the site).
