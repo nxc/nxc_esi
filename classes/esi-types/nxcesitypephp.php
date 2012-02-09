@@ -32,6 +32,11 @@ class nxcESITypePHP
 	 */
 	public function getIncludeForTemplate( $template, $keys )
 	{
+		// Save the current EAS instance to restore it afterwards, so that the
+		// {es-cache} settings of the included template doesn't affect the
+		// header for the current response, which is for the full page.
+		$easInstance = nxcESIEAS::restoreInstance( null );
+		
 		$tpl = eZTemplate::factory();
 		
 		do {
@@ -76,6 +81,8 @@ class nxcESITypePHP
 		
 		unset( $tpl->Variables[$namespace] );
 		
+		nxcESIEAS::restoreInstance( $easInstance );
+		
 		return $content;
 	}
 	
@@ -84,6 +91,11 @@ class nxcESITypePHP
 	 */
 	public function getIncludeForMethodCall( $methodInfo, $keys )
 	{
+		// Save the current EAS instance to restore it afterwards, so that the
+		// called method can use nxcESIEAS without affecting the header for the
+		// current response, which is for the full page.
+		$easInstance = nxcESIEAS::restoreInstance( null );
+		
 		if ( $methodInfo['static'] )
 		{
 			$call = array( $methodInfo['class'], $methodInfo['method'] );
@@ -98,6 +110,9 @@ class nxcESITypePHP
 		{
 			$content = '';
 		}
+		
+		nxcESIEAS::restoreInstance( $easInstance );
+		
 		return $content;
 	}
 }
