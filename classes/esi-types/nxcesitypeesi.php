@@ -86,6 +86,7 @@ class nxcESITypeESI
 		{
 			header( self::DO_ESI_HEADER );
 		}
+		nxcESIEAS::setUseESI( true );
 		foreach ( $params as $key => $value )
 		{
 			$url .= '&'.rawurlencode( $key ).'='.rawurlencode( $value );
