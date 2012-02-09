@@ -17,13 +17,21 @@ class nxcESITemplateFunctions
 	 */
 	private $ESIncludeName;
 	
-	/** Construct an instance of this class, using the given name for the
-	 * template function handled by this object.
-	 * @param string $esIncludeName The name to use for the es-include function.
+	/** The tag name this object should use for the es-cache function.
+	 * @var string
 	 */
-	public function __construct( $esIncludeName = 'es-include' )
-	{
+	private $ESCacheName;
+	
+	/** Construct an instance of this class, using the given name for the
+	 * template functions handled by this object.
+	 * @param string $esIncludeName The name to use for the es-include function.
+	 * @param string $esCacheName The name to use for the es-cache function.
+	 */
+	public function __construct(
+		$esIncludeName = 'es-include', $esCacheName = 'es-cache'
+	) {
 		$this->ESIncludeName = $esIncludeName;
+		$this->ESCacheName = $esCacheName;
 	}
 	
 	/** Get a list of the function names this object handles.
@@ -32,7 +40,7 @@ class nxcESITemplateFunctions
 	 */
 	public function functionList()
 	{
-		return array( $this->ESIncludeName );
+		return array( $this->ESIncludeName, $this->ESCacheName );
 	}
 	
 	/** Get whether or not the tag for this function has children,
@@ -52,14 +60,126 @@ class nxcESITemplateFunctions
 		$functionChildren, $functionParameters, $functionPlacement,
 		$rootNamespace, $currentNamespace
 	) {
-		if ( $functionName != $this->ESIncludeName )
+		if ( $functionName == $this->ESIncludeName )
 		{
-			eZDebug::writeError(
-				'Cannot process unknown template function: '.$functionName,
-				__METHOD__
+			return $this->processESIncludeFunction(
+				$tpl, $textElements, $functionName,
+				$functionChildren, $functionParameters, $functionPlacement,
+				$rootNamespace, $currentNamespace
 			);
-			return false;
 		}
+		if ( $functionName == $this->ESCacheName )
+		{
+			return $this->processESCacheFunction(
+				$tpl, $textElements, $functionName,
+				$functionChildren, $functionParameters, $functionPlacement,
+				$rootNamespace, $currentNamespace
+			);
+		}
+		eZDebug::writeError(
+			'Cannot process unknown template function: '.$functionName,
+			__METHOD__
+		);
+		return false;
+	}
+	
+	/** Handle the processing of the es-cache template function.
+	 * @see process()
+	 */
+	private function processESCacheFunction(
+		$tpl, &$textElements, $functionName,
+		$functionChildren, $functionParameters, $functionPlacement,
+		$rootNamespace, $currentNamespace
+	) {
+		if ( isset( $functionParameters['ttl'] ) ) {
+			$ttl = $tpl->elementValue(
+				$functionParameters['ttl'], $rootNamespace, $currentNamespace,
+				$functionPlacement
+			);
+			$parts = array();
+			if (
+				!preg_match( '/^(\d+\.?\d*|\.\d+)\s*([a-z]?)$/', $ttl, $parts )
+			) {
+				$tpl->warning(
+					$this->ESCacheName,
+					'Invalid TTL: '.$ttl,
+					$functionPlacement
+				);
+			}
+			else
+			{
+				$ttl = $parts[1];
+				// NOTE: This switch uses fall-through on purpose.
+				switch ( $parts[2] )
+				{
+					case 'w': $ttl *= 7; // weeks
+					case 'd': $ttl *= 24; // days
+					case 'h': $ttl *= 60; // hours
+					case 'm': $ttl *= 60; // minutes
+					case '': // Empty unit is defaulted to seconds.
+					case 's': // $ttl *= 1; // seconds
+						break;
+					
+					default:{
+						$tpl->warning(
+							$this->ESCacheName,
+							'Unknown unit on TTL, assuming seconds: '.$parts[2],
+							$functionPlacement
+						);
+					} break;
+				}
+				// Ensure we have an integer number of seconds.
+				$ttl = round( $ttl );
+				nxcESIEAS::setMaxAge( $ttl );
+			}
+		}
+		if ( isset( $functionParameters['no-store'] ) ) {
+			$noStore = $tpl->elementValue(
+				$functionParameters['no-store'],
+				$rootNamespace, $currentNamespace, $functionPlacement
+			);
+			if ( !is_bool( $noStore ) )
+			{
+				$tpl->warning(
+					$this->ESCacheName,
+					'Non-boolean value given to no-store',
+					$functionPlacement
+				);
+			}
+			else
+			{
+				nxcESIEAS::setNoStore( $noStore );
+			}
+		}
+		if ( isset( $functionParameters['no-store-remote'] ) ) {
+			$noStore = $tpl->elementValue(
+				$functionParameters['no-store-remote'],
+				$rootNamespace, $currentNamespace, $functionPlacement
+			);
+			if ( !is_bool( $noStore ) )
+			{
+				$tpl->warning(
+					$this->ESCacheName,
+					'Non-boolean value given to no-store-remote',
+					$functionPlacement
+				);
+			}
+			else
+			{
+				nxcESIEAS::setNoStoreRemote( $noStore );
+			}
+		}
+		return true;
+	}
+	
+	/** Handle the processing of the es-include template function.
+	 * @see process()
+	 */
+	private function processESIncludeFunction(
+		$tpl, &$textElements, $functionName,
+		$functionChildren, $functionParameters, $functionPlacement,
+		$rootNamespace, $currentNamespace
+	) {
 		if (
 			!isset( $functionParameters['template'] ) &&
 			!isset( $functionParameters['method'] )

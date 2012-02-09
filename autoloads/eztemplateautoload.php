@@ -10,7 +10,7 @@
 $eZTemplateFunctionArray = array();
 $eZTemplateFunctionArray[] = array(
 	'class' => 'nxcESITemplateFunctions',
-	'function_names' => array( 'es-include' ),
+	'function_names' => array( 'es-include', 'es-cache' ),
 );
 
 ?>
