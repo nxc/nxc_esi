@@ -1,12 +1,18 @@
 NXC Edge Side Include
 =====================
 
-This extension provides a new template function {es-include}, meant for use on
+This extension provides two new template functions that are meant for use on
 sites behind an edge proxy supporting ESI (e.g. Varnish).
 
 See the doc/ezsi.txt file for information on how this extension differs from
 the somewhat similar eZ SI extension by eZ Systems.
 
+
+The most important of these template functions is the {es-include} function,
+which allows you to make the edge proxy include the content of a template or
+the result of a method call in that location.
+
+See the file doc/es-include.txt for more information on how to use it.
 
 While this is meant to be used with ESI, using different implementations of the
 include mechanism is supported, so this can be used even on sites where the
@@ -30,3 +36,22 @@ However, not all of that specification is supported; this extension
 concentrates on the include functionality as per the <esi:include> tag, as that
 is the most widely supported part as far as I know, and the most immediately
 useful in the context of eZ Publish (and other server-side generated sites).
+
+
+
+The other function is the {es-cache} function, which allows you to set the TTL
+and other parameters for the edge cache, for that request - which means it's
+useful both in the templates included with {es-include}, and in other templates
+(e.g. the ones doing the including), to set how long the edge surrogate can
+cache that part of the page, if at all.
+
+Note that the {es-cache} function is only useful when you have an edge proxy
+supporting the Edge Architecture Specification 1.0, as it uses that standard
+to tell the surrogate how to process the response. This specification can be
+found here: http://www.w3.org/TR/2001/NOTE-edge-arch-20010804
+
+
+While Varnish 3 does not natively support this standard, we provide an example
+implementation in VCL that works with this extension in doc/example-v3.vcl.
+That example also includes code to support the simpler variant of specifying
+when to do ESI processing by sending a custom X-Do-ESI header.

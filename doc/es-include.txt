@@ -1,0 +1,156 @@
+The es-include function
+=======================
+
+In this file:
+- Introduction
+- Parameters
+	- template
+	- method
+- Permissions
+	- AllowedTemplates
+	- AllowedMethods
+
+------------
+Introduction
+------------
+
+This template function is used to include the content of another template, or
+the result of a method call, in the location of the call to the function.
+
+In normal circumstances, this inclusion will be done by the edge proxy, using
+ESI, but configuration allows you to use other implementations if you need to.
+
+
+----------
+Parameters
+----------
+
+This function recognizes two parameters, of which at least one must be present
+and non-empty, and uses any other parameters as both cache keys and as
+parameters sent to the template or method call.
+
+All parameters must have a string value to be accepted.
+
+This is because some implementations (including the main ESI one) will not run
+the given template in the current process, and thus must be able to pass the
+values to the new process, which is really only possible when they are strings.
+
+For convenience, numbers are automatically converted to their string
+equivalents, booleans are translated to the strings 'true' or 'false' depending
+on their value, and null values are treated as if that parameter was not given.
+
+
+template
+--------
+
+The first of the recognized parameters is the "template" parameter, which
+specifies which template to include.
+
+Example: {es-include template='design:include/node-view.tpl' node_id=2}
+
+This example would use the design resource to find the 'include/node-view.tpl'
+template, and would include it here. In that template, the $node_id variable
+would be set to 2.
+
+
+method
+------
+
+The second recognized parameter is the "method" parameter, which specifies
+which method to call, and on which class.
+
+If the "template" parameter is given, the "method" parameter is ignored and is
+passed to the template as if it was not recognized.
+
+The value of this parameter should be the class name, followed by a separator,
+followed by the method name.
+
+The separator, in addition to separating the class and method names, specifies
+whether the method should be called statically or on an instance of the class.
+
+The method will be called with one parameter, which is an associative array
+containing the given parameters with the parameter name as key, and should
+return a string containing the content to be included.
+
+Example 1: {es-include method='nxcExample::hello' name='world'}
+
+This example would call the static hello method on the nxcExample class, with
+one parameter that is an array containing the key 'name' with value 'world'.
+
+Example 2: {es-include method='nxcExample->helloWorld'}
+
+This example would call the helloWorld method on a new instance of the
+nxcExample class (constructed with no parameters), with one parameter that is
+an empty array.
+
+
+-----------
+Permissions
+-----------
+
+For security reasons, which templates and methods can be included are limited
+to those specified in a configured list.
+
+This is necessary because of the nature of HTTP and ESI, as the included
+content is completely disconnected from the content that did the including.
+
+If we did not have this security check, attackers could fetch just about any
+template, and call any method on any class, with parameters of their choice
+(albeit within the limitations of the one-array-parameter interface). It does
+not take much imagination to see how this can be a serious security risk.
+
+To mitigate this risk, we have to somehow limit which templates and methods can
+be called upon.
+
+We could have built in an automatic system where everything that is used in an
+{es-include} call is saved to a database to later compare with what is actually
+requested, but this was deemed overkill and overly complex for just about any
+reasonable use case.
+
+It was instead decided to keep a simple list in the nxc_esi.ini file that holds
+the allowed inclusions.
+
+This allows developers to easily manage which templates and methods can be
+included, simply by providing an ini.append file containing the entries that
+are allowed and no others.
+
+Due to the varying formats, there are actually two such lists in the file, one
+for allowed templates and one for allowed methods.
+
+Both lists are in the [Permissions] section.
+
+
+AllowedTemplates
+----------------
+
+This array is simply a list of allowed values for the template parameter.
+
+It is worth noting that this is not a list of which actual template files can
+be included, but a list of the value given to the es-include function,
+including the 'design:' prefix if used.
+
+Example:
+[Permissions]
+AllowedTemplates[]=design:include/node-view.tpl
+
+
+AllowedMethods
+--------------
+
+This array is a list of allowed classes and methods.
+
+The syntax of each entry is either the class name, or the class name followed
+by the string '::' followed by the method name.
+
+If an entry contains only the class name, then all methods of that class are
+allowed to be called, while an entry containing a method name only allows calls
+to that particular method of that particular class.
+
+Example:
+[Permissions]
+AllowedMethods[]=nxcExample::hello
+AllowedMethods[]=nxcHelloWorld
+
+This example allows calls to any method on the nxcHelloWorld class, and calls
+to the hello method on the nxcExample class. Unless added somewhere else, the
+helloWorld method of the nxcExample class (as used above) is not allowed.
