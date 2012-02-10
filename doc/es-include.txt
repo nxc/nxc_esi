@@ -9,6 +9,10 @@ In this file:
 - Permissions
 	- AllowedTemplates
 	- AllowedMethods
+- Implementations
+	- nxcESITypeNone
+	- nxcESITypePHP
+	- nxcESITypeESI
 
 ------------
 Introduction
@@ -154,3 +158,68 @@ AllowedMethods[]=nxcHelloWorld
 This example allows calls to any method on the nxcHelloWorld class, and calls
 to the hello method on the nxcExample class. Unless added somewhere else, the
 helloWorld method of the nxcExample class (as used above) is not allowed.
+
+
+---------------
+Implementations
+---------------
+
+While the es-include function is meant to be used with ESI, using different
+implementations of the include mechanism is supported - so this function can be
+used even on sites where the include mechanism is not based on ESI/1.0 but on
+something else.
+
+As an example, you could provide an implementation for e.g. SSI and have that
+be used instead of the default ESI-based implementation.
+
+This extension comes with several example implementations, that can be used
+as-is or as a starting point for your own.
+
+
+nxcESITypeNone
+--------------
+This implementation simply discards the includes, and doesn't output any
+content at all.
+
+This is not likely to be useful for anything other than as a base for further
+development, and maybe for testing of the core - but is used as the fall-back
+implementation if the configured implementation cannot be used for some reason.
+
+Falling back to this implementation is done mostly because it should make it
+obvious to everyone that something is wrong and needs to be fixed.
+
+
+nxcESITypePHP
+-------------
+This implementation does the inclusion server-side in PHP before sending any
+output to the browser or edge processor.
+
+It has some limitations that can make it behave somewhat differently than the
+other implementations, of which the biggest is that it runs the includes in the
+same PHP process as the includer, which can taint both.
+
+This is generally only useful when no other include mechanism is available, but
+you still need to see the content where it should be.
+
+
+nxcESITypeESI
+-------------
+This is the main and default implementation, which outputs ESI/1.0
+<esi:include/> tags to make the edge surrogate fetch the included content from
+the server, via a module view this extension provides for that purpose.
+
+This is the most useful of the example implementations, and can easily be used
+as-is with a surrogate edge proxy that supports ESI.
+
+When this implementation is used, and an include is called for on a page, it
+automatically tells the EAS implementation that ESI is in use and processing of
+it should be asked for. For convenience, it can also set a custom header to
+tell the edge that the page needs ESI processing, if configured to do so.
+
+The ESI syntax is based on the W3C document ESI Language Specification 1.0,
+which can be found here: http://www.w3.org/TR/2001/NOTE-esi-lang-20010804
+
+However, not all of that specification is supported; this extension focuses
+on the include functionality as per the <esi:include/> tag, as that is the most
+widely supported part as far as I know, and the most immediately useful in the
+context of eZ Publish (and other server-side generated sites).

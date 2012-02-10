@@ -12,31 +12,8 @@ The most important of these template functions is the {es-include} function,
 which allows you to make the edge proxy include the content of a template or
 the result of a method call in that location.
 
-See the file doc/es-include.txt for more information on how to use it.
-
-While this is meant to be used with ESI, using different implementations of the
-include mechanism is supported, so this can be used even on sites where the
-needed mechanism is not based on ESI/1.0 but on something else. As an example,
-you could provide an implementation for e.g. SSI and have that be used instead.
-
-At the moment, this extension comes with three implementations:
-- nxcESITypeNone simply discards the include, not giving any content.
-- nxcESITypePHP does the inclusion server-side in PHP before sending any output
-	to the browser; mostly useful when no other mechanism is available,
-	and has some limitations.
-- nxcESITypeESI is the main and default implementation, which outputs ESI/1.0
-	<esi:include> tags to make the edge proxy fetch the included content
-	from the server, via a module view this extension provides.
-
-
-The ESI syntax is based on the W3C document ESI Language Specification 1.0,
-which can be found here: http://www.w3.org/TR/2001/NOTE-esi-lang-20010804
-
-However, not all of that specification is supported; this extension
-concentrates on the include functionality as per the <esi:include> tag, as that
-is the most widely supported part as far as I know, and the most immediately
-useful in the context of eZ Publish (and other server-side generated sites).
-
+See the file doc/es-include.txt for more information on this function and its
+implementations.
 
 
 The other function is the {es-cache} function, which allows you to set the TTL
