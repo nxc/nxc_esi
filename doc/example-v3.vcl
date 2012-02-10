@@ -9,13 +9,6 @@ C{
 
 // ================================ //
 
-backend default {
-	.host = "127.0.0.1";
-	.port = "8080";
-}
-
-// ================================ //
-
 // We set a header on the object to be able to ban based on it later, but don't
 // want that header to be sent to the client, as it's just for internal use.
 sub vcl_fetch
@@ -31,6 +24,8 @@ sub vcl_deliver
 
 // If the backend tells us to do ESI with the custom header, do so, and remove
 // it from the headers being sent to the client, as it's just for internal use.
+// Note that this header is also used below to work around a bug in Varnish, so
+// it can be set even if the backend server didn't send it.
 sub vcl_fetch
 {
 	if ( beresp.http.X-Do-ESI )
@@ -187,3 +182,31 @@ C{
 	}
 }
 
+// ================================ //
+
+// We have to disable If-Modified-Since due to a several years old bug in
+// Varnish (that they consider a feature request), namely that Varnish returns
+// 304 Not Modified as long as the root page hasn't expired, without first
+// checking if the page has any includes that have expired.
+//
+// However, we only want to disable it for pages that are actually using ESI
+// processing, so the browser doesn't have to keep re-downloading other things
+// that haven't changed, such as images or pages not using ESI.
+//
+// Since the do_esi property is not available in vcl_hit, we reuse the X-Do-ESI
+// header to know when to unset If-Modified-Since, as that name makes sense and
+// the header is unset by vcl_deliver above anyway.
+sub vcl_hit
+{
+	if ( obj.http.X-Do-ESI == "true" )
+	{
+		unset req.http.If-Modified-Since;
+	}
+}
+sub vcl_fetch
+{
+	if ( beresp.do_esi )
+	{
+		set beresp.http.X-Do-ESI = "true";
+	}
+}
