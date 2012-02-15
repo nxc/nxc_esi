@@ -17,18 +17,17 @@ implementations.
 
 
 The other function is the {es-cache} function, which allows you to set the TTL
-and other parameters for the edge cache, for that request - which means it's
-useful both in the templates included with {es-include}, and in other templates
-(e.g. the ones doing the including), to set how long the edge surrogate can
-cache that part of the page, if at all.
+and other caching parameters for the edge surrogate, for that response - which
+means it's useful both in the templates included with {es-include}, and in
+other templates (e.g. the ones doing the including), to set how long the edge
+surrogate can cache that part of the page, if at all.
 
-Note that the {es-cache} function is only useful when you have an edge proxy
-supporting the Edge Architecture Specification 1.0, as it uses that standard
-to tell the surrogate how to process the response. This specification can be
-found here: http://www.w3.org/TR/2001/NOTE-edge-arch-20010804
+See the file doc/es-cache.txt for more information on this function.
 
 
-While Varnish 3 does not natively support this standard, we provide an example
-implementation in VCL that works with this extension in doc/example-v3.vcl.
-That example also includes code to support the simpler variant of specifying
-when to do ESI processing by sending a custom X-Do-ESI header.
+To support using this extension with Varnish 3, in particular the {es-cache}
+function (see its documentation for more info), we provide a VCL-based example
+implementation of EAS/1.0 in the doc/example-v3.vcl file, which also includes
+some other parts we need or (can) use.
+However, it is not a complete configuration for using Varnish with eZ Publish;
+as an example, it does not do anything about how Varnish handles cookies.

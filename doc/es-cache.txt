@@ -1,0 +1,115 @@
+The es-cache function
+=====================
+
+In this file:
+- Introduction
+- Parameters
+	- ttl
+	- no-store
+	- no-store-remote
+- Use from PHP
+
+------------
+Introduction
+------------
+
+This template function is used to set caching parameters for the edge
+surrogate's cache (including the TTL), for the current request.
+
+This is in contrast to the standard headers configurable in eZ Publish, which
+set the caching parameters for the browser and any proxy caches on the way
+there, which may not be under your control at all.
+
+This function is thus only useful when you have an edge surrogate doing caching
+for your site, and also only when that surrogate supports the Edge Architecture
+Specification 1.0, as that standard is used to tell the surrogate how to
+process and cache the response. That specification can be found here:
+http://www.w3.org/TR/2001/NOTE-edge-arch-20010804
+
+While Varnish 3 does not natively support this standard, we provide an example
+implementation in VCL that works with this extension in doc/example-v3.vcl.
+That example also includes code to support the simpler variant of specifying
+when to do ESI processing by sending a custom X-Do-ESI header.
+
+You will get the most use out of this function when used with the {es-include}
+function (using the ESI implementation), as you there get a separate request
+for each included template, which thus can have separate caching parameters.
+
+However, it can still be used even if you don't use ESI, as long as you realize
+that the caching parameters are per request, not per template or block. Calling
+this function multiple times will simply lead to overwriting earlier values.
+
+
+----------
+Parameters
+----------
+
+
+ttl
+---
+
+The ttl parameter sets the TTL (time to live), also known as maximum age, of
+the response.
+
+The value of this parameter can either be a simple number, or a string
+containing a number followed by a unit letter.
+
+Examples: {es-cache ttl=10} {es-cache ttl='5m'} {es-cache ttl='2h'}
+
+If no unit is specified, the number is treated as seconds.
+
+These units are recognized:
+	s : seconds
+	m : minutes (á 60 seconds)
+	h : hours (á 60 minutes)
+	d : days (á 24 hours)
+	w : weeks (á 7 days)
+
+Note that no calendar is involved, the units are just syntactic sugar that
+makes longer periods easier to specify; internally, seconds are always used.
+
+
+no-store
+--------
+
+When this parameter is given, the edge surrogate is told to not store this
+response, and only use it for the request that triggered its generation. This
+also forces the TTL to 0, as the response cannot be cached.
+
+Examples: {es-cache no-store} {es-cache no-store=true()}
+
+Both of these examples are equivalent.
+
+As the second example suggests, it is possible to turn this back off after
+turning it on, by giving a false value, like this: {es-cache no-store=false()}
+
+
+no-store-remote
+---------------
+
+When this parameter is given, the remote edge surrogate is told to not store
+this response, and only use it for the request that triggered its generation.
+
+Examples: {es-cache no-store-remote} {es-cache no-store-remote=true()}
+
+Unlike the no-store parameter, this only affects remote edge surrogates, not
+local ones - and hence does not force the TTL to 0, as local surrogates may 
+still cache it.
+
+Like the no-store parameter, this can also be turned back off, in the same
+manner: {es-cache no-store-remote=false()}
+
+
+------------
+Use from PHP
+------------
+
+The same functionality provided by this template function is also available in
+PHP, by the use of the nxcESIEAS class, except for the translation of time
+units to seconds.
+
+This is especially useful when using {es-include} with the method parameter.
+
+The ttl, no-store and no-store-remote parameters are, respectively, equivalent
+to the setMaxAge(), setNoStore() and setNoStoreRemote() methods of that class;
+see the class and method documentation for more information.
